@@ -1,4 +1,4 @@
-import { type ComponentProps, Fragment, useMemo, useState } from 'react';
+import { type ComponentProps, Fragment } from 'react';
 import { type VariantProps, cva } from 'class-variance-authority';
 import { Track } from 'livekit-client';
 import {
@@ -10,16 +10,11 @@ import {
   VideoIcon,
   VideoOffIcon,
 } from 'lucide-react';
-import { Toggle } from '@/components/ui/toggle';
+import { Toggle, toggleVariants } from '@/components/ui/toggle';
 import { cn } from '@/lib/shadcn/utils';
 
 export const agentTrackToggleVariants = cva(['size-9'], {
   variants: {
-    size: {
-      default: 'h-9 px-2 min-w-9',
-      sm: 'h-8 px-1.5 min-w-8',
-      lg: 'h-10 px-2.5 min-w-10',
-    },
     variant: {
       default: [
         'data-[state=off]:bg-destructive/10 data-[state=off]:text-destructive',
@@ -63,12 +58,8 @@ function getSourceIcon(source: Track.Source, enabled: boolean, pending = false) 
 /**
  * Props for the AgentTrackToggle component.
  */
-export type AgentTrackToggleProps = VariantProps<typeof agentTrackToggleVariants> &
+export type AgentTrackToggleProps = VariantProps<typeof toggleVariants> &
   ComponentProps<'button'> & {
-    /**
-     * The size of the toggle.
-     */
-    size?: 'sm' | 'default' | 'lg';
     /**
      * The variant of the toggle.
      * @defaultValue 'default'
@@ -120,37 +111,24 @@ export function AgentTrackToggle({
   variant = 'default',
   source,
   pending = false,
-  pressed,
+  pressed = false,
   defaultPressed = false,
   className,
   onPressedChange,
   ...props
 }: AgentTrackToggleProps) {
-  const [uncontrolledPressed, setUncontrolledPressed] = useState(defaultPressed ?? false);
-  const isControlled = pressed !== undefined;
-  const resolvedPressed = useMemo(
-    () => (isControlled ? pressed : uncontrolledPressed) ?? false,
-    [isControlled, pressed, uncontrolledPressed]
-  );
-  const IconComponent = getSourceIcon(source as Track.Source, resolvedPressed, pending);
-  const handlePressedChange = (nextPressed: boolean) => {
-    if (!isControlled) {
-      setUncontrolledPressed(nextPressed);
-    }
-    onPressedChange?.(nextPressed);
-  };
+  const IconComponent = getSourceIcon(source as Track.Source, pressed ?? false, pending);
 
   return (
     <Toggle
       size={size}
       variant={variant}
-      pressed={isControlled ? pressed : undefined}
-      defaultPressed={isControlled ? undefined : defaultPressed}
+      pressed={pressed}
+      defaultPressed={defaultPressed}
       aria-label={`Toggle ${source}`}
-      onPressedChange={handlePressedChange}
+      onPressedChange={onPressedChange}
       className={cn(
         agentTrackToggleVariants({
-          size,
           variant: variant ?? 'default',
           className,
         })

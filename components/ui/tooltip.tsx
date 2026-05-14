@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Tooltip as TooltipPrimitive } from 'radix-ui';
+import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { cn } from '@/lib/shadcn/utils';
 
 function TooltipProvider({
@@ -18,7 +18,11 @@ function TooltipProvider({
 }
 
 function Tooltip({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
-  return <TooltipPrimitive.Root data-slot="tooltip" {...props} />;
+  return (
+    <TooltipProvider>
+      <TooltipPrimitive.Root data-slot="tooltip" {...props} />
+    </TooltipProvider>
+  );
 }
 
 function TooltipTrigger({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {

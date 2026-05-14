@@ -18,12 +18,6 @@ const LIVEKIT_URL = process.env.LIVEKIT_URL;
 export const revalidate = 0;
 
 export async function POST(req: Request) {
-  if (process.env.NODE_ENV !== 'development') {
-    throw new Error(
-      'THIS API ROUTE IS INSECURE. DO NOT USE THIS ROUTE IN PRODUCTION WITHOUT AN AUTHENTICATION LAYER.'
-    );
-  }
-
   try {
     if (LIVEKIT_URL === undefined) {
       throw new Error('LIVEKIT_URL is not defined');
@@ -35,11 +29,9 @@ export async function POST(req: Request) {
       throw new Error('LIVEKIT_API_SECRET is not defined');
     }
 
-    // Parse room config from request body.
+    // Parse agent configuration from request body
     const body = await req.json();
-    const roomConfig = body?.room_config
-      ? RoomConfiguration.fromJson(body.room_config, { ignoreUnknownFields: true })
-      : new RoomConfiguration();
+    const agentName: string = body?.room_config?.agents?.[0]?.agent_name;
 
     // Generate participant token
     const participantName = 'user';
@@ -49,15 +41,15 @@ export async function POST(req: Request) {
     const participantToken = await createParticipantToken(
       { identity: participantIdentity, name: participantName },
       roomName,
-      roomConfig
+      agentName
     );
 
     // Return connection details
     const data: ConnectionDetails = {
       serverUrl: LIVEKIT_URL,
       roomName,
+      participantToken: participantToken,
       participantName,
-      participantToken,
     };
     const headers = new Headers({
       'Cache-Control': 'no-store',
@@ -74,7 +66,7 @@ export async function POST(req: Request) {
 function createParticipantToken(
   userInfo: AccessTokenOptions,
   roomName: string,
-  roomConfig: RoomConfiguration | undefined
+  agentName?: string
 ): Promise<string> {
   const at = new AccessToken(API_KEY, API_SECRET, {
     ...userInfo,
@@ -89,8 +81,10 @@ function createParticipantToken(
   };
   at.addGrant(grant);
 
-  if (roomConfig) {
-    at.roomConfig = roomConfig;
+  if (agentName) {
+    at.roomConfig = new RoomConfiguration({
+      agents: [{ agentName }],
+    });
   }
 
   return at.toJwt();

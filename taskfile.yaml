@@ -1,4 +1,5 @@
 version: '3'
+output: interleaved
 dotenv: ['.env.local']
 
 tasks:

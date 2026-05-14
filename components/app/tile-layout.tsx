@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Track } from 'livekit-client';
-import { AnimatePresence, type MotionProps, motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import {
   type TrackReference,
   VideoTrack,
@@ -8,17 +8,19 @@ import {
   useTracks,
   useVoiceAssistant,
 } from '@livekit/components-react';
+import { AgentAudioVisualizerBar } from '@/components/agents-ui/agent-audio-visualizer-bar';
 import { cn } from '@/lib/shadcn/utils';
-import { AudioVisualizer } from './audio-visualizer';
 
-const ANIMATION_TRANSITION: MotionProps['transition'] = {
+const MotionContainer = motion.create('div');
+
+const ANIMATION_TRANSITION = {
   type: 'spring',
   stiffness: 675,
   damping: 75,
   mass: 1,
 };
 
-const tileViewClassNames = {
+const classNames = {
   // GRID
   // 2 Columns x 3 Rows
   grid: [
@@ -69,30 +71,14 @@ export function useLocalTrackRef(source: Track.Source) {
 
 interface TileLayoutProps {
   chatOpen: boolean;
-  audioVisualizerType?: 'bar' | 'wave' | 'grid' | 'radial' | 'aura';
-  audioVisualizerColor?: `#${string}`;
-  audioVisualizerColorShift?: number;
-  audioVisualizerWaveLineWidth?: number;
-  audioVisualizerGridRowCount?: number;
-  audioVisualizerGridColumnCount?: number;
-  audioVisualizerRadialBarCount?: number;
-  audioVisualizerRadialRadius?: number;
-  audioVisualizerBarCount?: number;
 }
 
-export function TileLayout({
-  chatOpen,
-  audioVisualizerType,
-  audioVisualizerColor,
-  audioVisualizerColorShift,
-  audioVisualizerBarCount,
-  audioVisualizerRadialBarCount,
-  audioVisualizerRadialRadius,
-  audioVisualizerGridRowCount,
-  audioVisualizerGridColumnCount,
-  audioVisualizerWaveLineWidth,
-}: TileLayoutProps) {
-  const { videoTrack: agentVideoTrack } = useVoiceAssistant();
+export function TileLayout({ chatOpen }: TileLayoutProps) {
+  const {
+    state: agentState,
+    audioTrack: agentAudioTrack,
+    videoTrack: agentVideoTrack,
+  } = useVoiceAssistant();
   const [screenShareTrack] = useTracks([Track.Source.ScreenShare]);
   const cameraTrack: TrackReference | undefined = useLocalTrackRef(Track.Source.Camera);
 
@@ -106,63 +92,61 @@ export function TileLayout({
   const videoHeight = agentVideoTrack?.publication.dimensions?.height ?? 0;
 
   return (
-    <div className="absolute inset-x-0 top-8 bottom-32 z-50 md:top-12 md:bottom-40">
+    <div className="pointer-events-none fixed inset-x-0 top-8 bottom-32 z-50 md:top-12 md:bottom-40">
       <div className="relative mx-auto h-full max-w-2xl px-4 md:px-0">
-        <div className={cn(tileViewClassNames.grid)}>
+        <div className={cn(classNames.grid)}>
           {/* Agent */}
           <div
             className={cn([
               'grid',
-              !chatOpen && tileViewClassNames.agentChatClosed,
-              chatOpen && hasSecondTile && tileViewClassNames.agentChatOpenWithSecondTile,
-              chatOpen && !hasSecondTile && tileViewClassNames.agentChatOpenWithoutSecondTile,
+              !chatOpen && classNames.agentChatClosed,
+              chatOpen && hasSecondTile && classNames.agentChatOpenWithSecondTile,
+              chatOpen && !hasSecondTile && classNames.agentChatOpenWithoutSecondTile,
             ])}
           >
             <AnimatePresence mode="popLayout">
               {!isAvatar && (
                 // Audio Agent
-                <motion.div
+                <MotionContainer
                   key="agent"
                   layoutId="agent"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  initial={{
+                    opacity: 0,
+                    scale: 0,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: chatOpen ? 1 : 4,
+                  }}
                   transition={{
                     ...ANIMATION_TRANSITION,
                     delay: animationDelay,
                   }}
-                  className={cn('relative aspect-square h-[90px]')}
+                  className={cn(
+                    'bg-background aspect-square h-[90px] rounded-md border border-transparent transition-[border,drop-shadow]',
+                    chatOpen && 'border-input/50 drop-shadow-lg/10 delay-200'
+                  )}
                 >
-                  <AudioVisualizer
-                    key="audio-visualizer"
-                    initial={{ scale: 1 }}
-                    animate={{ scale: chatOpen ? 0.2 : 1 }}
-                    transition={{
-                      ...ANIMATION_TRANSITION,
-                      delay: animationDelay,
-                    }}
-                    audioVisualizerType={audioVisualizerType}
-                    audioVisualizerColor={audioVisualizerColor}
-                    audioVisualizerColorShift={audioVisualizerColorShift}
-                    audioVisualizerBarCount={audioVisualizerBarCount}
-                    audioVisualizerRadialBarCount={audioVisualizerRadialBarCount}
-                    audioVisualizerRadialRadius={audioVisualizerRadialRadius}
-                    audioVisualizerGridRowCount={audioVisualizerGridRowCount}
-                    audioVisualizerGridColumnCount={audioVisualizerGridColumnCount}
-                    audioVisualizerWaveLineWidth={audioVisualizerWaveLineWidth}
-                    isChatOpen={chatOpen}
-                    className={cn(
-                      'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-                      'bg-background rounded-[50px] border border-transparent transition-[border,drop-shadow]',
-                      chatOpen && 'border-input shadow-2xl/10 delay-200'
-                    )}
-                    style={{ color: audioVisualizerColor }}
-                  />
-                </motion.div>
+                  <AgentAudioVisualizerBar
+                    barCount={5}
+                    state={agentState}
+                    audioTrack={agentAudioTrack}
+                    className={cn('flex h-full items-center justify-center gap-1 px-4 py-2')}
+                  >
+                    <span
+                      className={cn([
+                        'bg-muted min-h-2.5 w-2.5 rounded-full',
+                        'origin-center transition-colors duration-250 ease-linear',
+                        'data-[lk-highlighted=true]:bg-foreground data-[lk-muted=true]:bg-muted',
+                      ])}
+                    />
+                  </AgentAudioVisualizerBar>
+                </MotionContainer>
               )}
 
               {isAvatar && (
                 // Avatar Agent
-                <motion.div
+                <MotionContainer
                   key="avatar"
                   layoutId="avatar"
                   initial={{
@@ -199,7 +183,7 @@ export function TileLayout({
                     trackRef={agentVideoTrack}
                     className={cn(chatOpen && 'size-[90px] object-cover')}
                   />
-                </motion.div>
+                </MotionContainer>
               )}
             </AnimatePresence>
           </div>
@@ -207,14 +191,14 @@ export function TileLayout({
           <div
             className={cn([
               'grid',
-              chatOpen && tileViewClassNames.secondTileChatOpen,
-              !chatOpen && tileViewClassNames.secondTileChatClosed,
+              chatOpen && classNames.secondTileChatOpen,
+              !chatOpen && classNames.secondTileChatClosed,
             ])}
           >
             {/* Camera & Screen Share */}
             <AnimatePresence>
               {((cameraTrack && isCameraEnabled) || (screenShareTrack && isScreenShareEnabled)) && (
-                <motion.div
+                <MotionContainer
                   key="camera"
                   layout="position"
                   layoutId="camera"
@@ -234,15 +218,15 @@ export function TileLayout({
                     ...ANIMATION_TRANSITION,
                     delay: animationDelay,
                   }}
-                  className="aspect-square size-[90px] drop-shadow-lg/20"
+                  className="drop-shadow-lg/20"
                 >
                   <VideoTrack
                     trackRef={cameraTrack || screenShareTrack}
                     width={(cameraTrack || screenShareTrack)?.publication.dimensions?.width ?? 0}
                     height={(cameraTrack || screenShareTrack)?.publication.dimensions?.height ?? 0}
-                    className="bg-muted aspect-square size-[90px] rounded-md object-cover"
+                    className="bg-muted aspect-square w-[90px] rounded-md object-cover"
                   />
-                </motion.div>
+                </MotionContainer>
               )}
             </AnimatePresence>
           </div>

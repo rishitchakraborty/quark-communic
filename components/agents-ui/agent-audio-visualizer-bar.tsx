@@ -43,19 +43,20 @@ function cloneSingleChild(
   });
 }
 
-export const AgentAudioVisualizerBarElementVariants = cva(
+export const AgentAudioVisualizerBarVariants = cva(
   [
-    'rounded-full transition-colors duration-250 ease-linear',
-    'bg-current/10 data-[lk-highlighted=true]:bg-current',
+    'relative flex items-center justify-center',
+    '*:rounded-full *:transition-colors *:duration-250 *:ease-linear',
+    '*:bg-transparent *:data-[lk-highlighted=true]:bg-current',
   ],
   {
     variants: {
       size: {
-        icon: 'w-[4px] min-h-[4px]',
-        sm: 'w-[8px] min-h-[8px]',
-        md: 'w-[16px] min-h-[16px]',
-        lg: 'w-[32px] min-h-[32px]',
-        xl: 'w-[64px] min-h-[64px]',
+        icon: ['h-[24px] gap-[2px]', '*:w-[4px] *:min-h-[4px]'],
+        sm: ['h-[56px] gap-[4px]', '*:w-[8px] *:min-h-[8px]'],
+        md: ['h-[112px] gap-[8px]', '*:w-[16px] *:min-h-[16px]'],
+        lg: ['h-[224px] gap-[16px]', '*:w-[32px] *:min-h-[32px]'],
+        xl: ['h-[448px] gap-[32px]', '*:w-[64px] *:min-h-[64px]'],
       },
     },
     defaultVariants: {
@@ -63,21 +64,6 @@ export const AgentAudioVisualizerBarElementVariants = cva(
     },
   }
 );
-
-export const AgentAudioVisualizerBarVariants = cva('relative flex items-center justify-center', {
-  variants: {
-    size: {
-      icon: 'h-[24px] gap-[2px]',
-      sm: 'h-[56px] gap-[4px]',
-      md: 'h-[112px] gap-[8px]',
-      lg: 'h-[224px] gap-[16px]',
-      xl: 'h-[448px] gap-[32px]',
-    },
-  },
-  defaultVariants: {
-    size: 'md',
-  },
-});
 
 /**
  * Props for the AgentAudioVisualizerBar component.
@@ -94,10 +80,6 @@ export interface AgentAudioVisualizerBarProps {
    */
   state?: AgentState;
   /**
-   * The color of the bars in hexidecimal format.
-   */
-  color?: `#${string}`;
-  /**
    * The number of bars to display in the visualizer.
    * If not provided, defaults based on size: 3 for 'icon'/'sm', 5 for others.
    */
@@ -111,10 +93,10 @@ export interface AgentAudioVisualizerBarProps {
    */
   className?: string;
   /**
-   * Custom div element to render as grid cells. Each child receives data-lk-index,
-   * data-lk-highlighted props and style props for height. Must be a single div element.
+   * Custom children to render as bars. Each child receives data-lk-index,
+   * data-lk-highlighted, and style props for height.
    */
-  children?: ReactNode;
+  children?: ReactNode | ReactNode[];
 }
 
 /**
@@ -136,12 +118,10 @@ export interface AgentAudioVisualizerBarProps {
 export function AgentAudioVisualizerBar({
   size = 'md',
   state = 'connecting',
-  color,
   barCount,
   audioTrack,
   className,
   children,
-  style,
   ...props
 }: AgentAudioVisualizerBarProps &
   VariantProps<typeof AgentAudioVisualizerBarVariants> &
@@ -191,17 +171,8 @@ export function AgentAudioVisualizerBar({
     [state, volumeBands, _barCount]
   );
 
-  if (children && Array.isArray(children)) {
-    throw new Error('AgentAudioVisualizerBar children must be a single element.');
-  }
-
   return (
-    <div
-      data-lk-state={state}
-      style={{ ...style, color } as CSSProperties}
-      className={cn(AgentAudioVisualizerBarVariants({ size }), className)}
-      {...props}
-    >
+    <div className={cn(AgentAudioVisualizerBarVariants({ size }), className)} {...props}>
       {bands.map((band: number, idx: number) =>
         children ? (
           <React.Fragment key={idx}>
@@ -217,7 +188,6 @@ export function AgentAudioVisualizerBar({
             data-lk-index={idx}
             data-lk-highlighted={highlightedIndices.includes(idx)}
             style={{ height: `${band * 100}%` }}
-            className={cn(AgentAudioVisualizerBarElementVariants({ size }))}
           />
         )
       )}
