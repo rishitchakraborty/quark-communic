@@ -18,7 +18,7 @@ export default async function Page({ searchParams }: PageProps) {
   // Dynamic agent selection
   appConfig.agentName = params.agentName || 'nism-assistant';
 
-  console.log("Selected Agent:", appConfig.agentName);
+  console.log('Selected Agent:', appConfig.agentName);
 
   return <App appConfig={appConfig} />;
 }
